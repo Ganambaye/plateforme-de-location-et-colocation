@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Annonce - Tanal Sa Logement</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div id="nav"></div>
+  <div class="container" id="content"></div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/ui.js"></script>
+  <script>
+    (async function () {
+      const user = await me();
+      await renderNav('home');
+      const out = document.getElementById('content');
+      let a;
+      try { a = await api('/api/annonces/' + qs('id')); }
+      catch { out.innerHTML = '<div class="empty" style="margin:40px 0">Annonce introuvable.</div>'; return; }
+
+      const etudiant = user && user.role === 'etudiant';
+      out.innerHTML = `<div class="detail">
+        <div>
+          ${photo(a.photo, `<span class="badge badge-green">${esc(a.type)}</span>`)}
+          <div class="panel" style="margin-top:16px">
+            <h2>Description</h2>
+            <p style="color:#475569">${esc(a.description)}</p>
+          </div>
+          <div class="panel">
+            <h2>${icon('star', 16)} Avis des étudiants</h2>
+            <div id="avis">${a.avis.length ? a.avis.map((v) =>
+              `<div class="list-row"><div class="grow"><b>${esc(v.etudiant.prenom)} ${esc(v.etudiant.nom)}
+                <span class="stars">${'★'.repeat(v.note)}${'☆'.repeat(5 - v.note)}</span></b>
+                <span>${esc(v.texte)}</span></div></div>`).join('')
+              : '<div class="empty">Aucun avis pour le moment.</div>'}</div>
+            ${etudiant ? `<form id="avis-form" class="form-grid" style="margin-top:12px">
+              <div class="field"><label>Note</label><select name="note">${[5, 4, 3, 2, 1].map((n) => `<option value="${n}">${n} ★</option>`).join('')}</select></div>
+              <div class="field"><label>Commentaire</label><input name="texte" placeholder="Votre avis..." required></div>
+              <div class="full"><button class="btn btn-primary btn-sm">Publier mon avis</button></div>
+            </form>` : ''}
+          </div>
+        </div>
+        <aside class="detail-info">
+          <div class="panel" style="margin:0">
+            <h1>${esc(a.titre)}</h1>
+            <span class="an-loc">${icon('map', 14)} ${esc(a.quartier)}, Dakar</span>
+            <div class="price-big">${fmtFCFA(a.prix)} <small>/mois</small></div>
+            ${a.boostActif ? '<span class="badge badge-blue">Annonce boostée</span>' : ''}
+            <div style="display:flex;flex-direction:column;gap:10px;margin-top:16px">
+              ${etudiant ? `
+                <button class="btn ${a.favori ? 'btn-red' : 'btn-ghost'}" id="fav-btn">${icon('heart', 16)} ${a.favori ? 'Retirer des favoris' : 'Ajouter aux favoris'}</button>
+                <form id="visite-form" class="form-grid">
+                  <div class="field"><label>Date de visite</label><input type="date" name="date" min="${new Date().toISOString().slice(0, 10)}" required></div>
+                  <div class="field"><label>Heure</label><input type="time" name="heure" required></div>
+                  <div class="full"><button class="btn btn-primary btn-block">${icon('calendar', 16)} Réserver une visite</button></div>
+                </form>
+                <form id="msg-form" class="form-grid">
+                  <div class="field full"><label>Message au bailleur</label><textarea name="texte" rows="3" placeholder="Bonjour, je suis intéressé(e)..." required></textarea></div>
+                  <div class="full"><button class="btn btn-ghost btn-block">${icon('mail', 16)} Contacter le bailleur</button></div>
+                </form>`
+              : user ? '<div class="empty">Connectez-vous en tant qu\'étudiant pour réserver.</div>'
+              : `<a class="btn btn-primary btn-block" href="/connexion.html">Connectez-vous pour réserver</a>`}
+            </div>
+          </div>
+          <div class="panel" style="margin:0">
+            <h2>${icon('user', 16)} Bailleur</h2>
+            <div class="list-row" style="margin:0;border:none;padding:0">
+              <span class="avatar">${esc(a.bailleur.prenom[0])}${esc(a.bailleur.nom[0])}</span>
+              <div class="grow"><b>${esc(a.bailleur.prenom)} ${esc(a.bailleur.nom)}</b>
+              <span>${esc(a.bailleur.telephone)}</span></div>
+            </div>
+          </div>
+        </aside>
+      </div>`;
+
+      if (etudiant) {
+        document.getElementById('fav-btn').onclick = async (e) => {
+          const r = await api('/api/favoris', { method: 'POST', body: { annonceId: a.id } });
+          a.favori = r.favori;
+          e.currentTarget.className = `btn ${r.favori ? 'btn-red' : 'btn-ghost'}`;
+          e.currentTarget.innerHTML = `${icon('heart', 16)} ${r.favori ? 'Retirer des favoris' : 'Ajouter aux favoris'}`;
+          toast(r.favori ? 'Ajouté aux favoris' : 'Retiré des favoris');
+        };
+        document.getElementById('visite-form').onsubmit = async (e) => {
+          e.preventDefault();
+          const f = Object.fromEntries(new FormData(e.target));
+          await api('/api/visites', { method: 'POST', body: { ...f, annonceId: a.id } });
+          toast('Demande de visite envoyée');
+          e.target.reset();
+        };
+        document.getElementById('msg-form').onsubmit = async (e) => {
+          e.preventDefault();
+          const f = new FormData(e.target);
+          await api('/api/messages', { method: 'POST', body: { toId: a.bailleurId, annonceId: a.id, texte: f.get('texte') } });
+          toast('Message envoyé au bailleur');
+          e.target.reset();
+        };
+        document.getElementById('avis-form').onsubmit = async (e) => {
+          e.preventDefault();
+          const f = Object.fromEntries(new FormData(e.target));
+          await api('/api/avis', { method: 'POST', body: { ...f, note: Number(f.note), annonceId: a.id } });
+          toast('Merci pour votre avis');
+          location.reload();
+        };
+      }
+    })();
+  </script>
+</body>
+</html>

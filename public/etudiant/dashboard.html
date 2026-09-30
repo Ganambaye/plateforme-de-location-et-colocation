@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mon espace étudiant - Tanal Sa Logement</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div id="nav"></div>
+  <div class="shell">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main class="main" id="main"></main>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/ui.js"></script>
+  <script>
+    (async function () {
+      const user = await guard('etudiant');
+      if (!user) return;
+      await renderNav();
+
+      const VUES = ['dashboard', 'favoris', 'visites', 'messages', 'profil'];
+      const ITEMS = [
+        ['dashboard', 'chart', 'Dashboard'],
+        ['favoris', 'heart', 'Annonces'],
+        ['visites', 'calendar', 'Visites'],
+        ['messages', 'mail', 'Messages'],
+        ['profil', 'user', 'Profil']
+      ];
+
+      async function renderSidebar() {
+        const visites = await api('/api/visites');
+        const aVenir = visites.filter((v) => v.statut !== 'annulee' && v.date >= new Date().toISOString().slice(0, 10)).length;
+        document.getElementById('sidebar').innerHTML = `
+          <div class="side-title"><span class="avatar">${esc(user.prenom[0])}${esc(user.nom[0])}</span>
+            <div><b style="font-size:14px">${esc(user.prenom)} ${esc(user.nom)}</b><br>
+            <span style="color:var(--muted);font-size:12px">Étudiant</span></div></div>
+          ${ITEMS.map(([id, ic, lbl]) => `<button class="side-item ${id === vue ? 'on' : ''}" data-v="${id}">
+            ${icon(ic, 17)} ${lbl}
+            ${id === 'visites' && aVenir ? `<span class="count blue">${aVenir}</span>` : ''}
+            ${id === 'messages' && user.nonLus ? `<span class="count">${user.nonLus}</span>` : ''}
+          </button>`).join('')}`;
+        document.querySelectorAll('.side-item').forEach((b) => b.onclick = () => go(b.dataset.v));
+      }
+
+      let vue = 'dashboard';
+      const main = document.getElementById('main');
+
+      async function go(v) {
+        vue = v;
+        await renderSidebar();
+        await RENDERS[v]();
+      }
+
+      const RENDERS = {
+        async dashboard() {
+          const [visites, favoris] = await Promise.all([api('/api/visites'), api('/api/favoris')]);
+          const today = new Date().toISOString().slice(0, 10);
+          const prochaines = visites.filter((v) => v.statut !== 'annulee' && v.date >= today);
+          main.innerHTML = `
+            <div class="main-head"><h1>Bonjour, ${esc(user.prenom)} ${esc(user.nom)}</h1></div>
+            <div class="stats-row">
+              <div class="stat-card"><div class="lbl">Visites</div><div class="val">${visites.length}</div></div>
+              <div class="stat-card green"><div class="lbl">Favoris</div><div class="val">${favoris.length}</div></div>
+              <div class="stat-card amber"><div class="lbl">Messages</div><div class="val">${user.nonLus}</div></div>
+            </div>
+            <div class="panel">
+              <h2>${icon('calendar', 16)} Prochaines visites</h2>
+              ${prochaines.length ? prochaines.map((v) => `<div class="list-row">
+                <img class="thumb" src="/img/${v.annonce.photo}.png" alt="">
+                <div class="grow"><b>${esc(v.annonce.titre)}</b><span>${fmtDateVisite(v)} · ${esc(v.annonce.quartier)}</span></div>
+                <span class="badge ${v.statut === 'confirmee' ? 'badge-green-soft' : 'badge-amber'}">${v.statut === 'confirmee' ? 'Confirmée' : 'En attente'}</span>
+              </div>`).join('') : '<div class="empty">Aucune visite planifiée.</div>'}
+            </div>
+            <div class="panel">
+              <h2>${icon('heart', 16)} Annonces sauvegardées</h2>
+              <div class="grid-cards">${favoris.length ? favoris.map((a) => annonceCard(a)).join('') : '<div class="empty" style="grid-column:1/-1">Aucune annonce sauvegardée.</div>'}</div>
+            </div>`;
+        },
+        async favoris() {
+          const favoris = await api('/api/favoris');
+          main.innerHTML = `<div class="main-head"><h1>Mes favoris</h1></div>
+            <div class="grid-cards">${favoris.length ? favoris.map((a) => annonceCard(a,
+              `<button class="btn btn-ghost btn-sm" data-rm="${a.id}">Retirer</button>`)).join('')
+              : '<div class="empty" style="grid-column:1/-1">Aucun favori.</div>'}</div>`;
+          main.querySelectorAll('[data-rm]').forEach((b) => b.onclick = async () => {
+            await api('/api/favoris', { method: 'POST', body: { annonceId: b.dataset.rm } });
+            RENDERS.favoris();
+          });
+        },
+        async visites() {
+          const visites = await api('/api/visites');
+          main.innerHTML = `<div class="main-head"><h1>Mes visites</h1></div>
+            <div class="panel">${visites.length ? visites.map((v) => `<div class="list-row">
+              <img class="thumb" src="/img/${v.annonce.photo}.png" alt="">
+              <div class="grow"><b>${esc(v.annonce.titre)}</b><span>${fmtDateVisite(v)}</span></div>
+              <span class="badge ${v.statut === 'confirmee' ? 'badge-green-soft' : v.statut === 'annulee' ? 'badge-red' : 'badge-amber'}">${v.statut === 'confirmee' ? 'Confirmée' : v.statut === 'annulee' ? 'Annulée' : 'En attente'}</span>
+              ${v.statut !== 'annulee' ? `<button class="btn btn-ghost btn-sm" data-cancel="${v.id}">Annuler</button>` : ''}
+            </div>`).join('') : '<div class="empty">Aucune visite.</div>'}</div>`;
+          main.querySelectorAll('[data-cancel]').forEach((b) => b.onclick = async () => {
+            await api('/api/visites/' + b.dataset.cancel + '/statut', { method: 'PATCH', body: { statut: 'annulee' } });
+            toast('Visite annulée');
+            RENDERS.visites();
+          });
+        },
+        async messages() {
+          main.innerHTML = '<div class="main-head"><h1>Messages</h1></div><div id="msg-root"></div>';
+          await mountMessages(document.getElementById('msg-root'), user);
+        },
+        async profil() {
+          main.innerHTML = `<div class="main-head"><h1>Mon profil</h1></div>
+            <div class="panel" style="max-width:520px">
+              <div class="form-grid">
+                <div class="field"><label>Nom</label><input value="${esc(user.nom)}" disabled></div>
+                <div class="field"><label>Prénom</label><input value="${esc(user.prenom)}" disabled></div>
+                <div class="field full"><label>Email</label><input value="${esc(user.email)}" disabled></div>
+                <div class="field"><label>Téléphone</label><input value="${esc(user.telephone)}" disabled></div>
+                <div class="field"><label>WhatsApp</label><input value="${esc(user.whatsapp)}" disabled></div>
+              </div>
+              <button class="btn btn-red" style="margin-top:16px" onclick="logout()">${icon('logout', 16)} Se déconnecter</button>
+            </div>`;
+        }
+      };
+
+      await go('dashboard');
+    })();
+  </script>
+</body>
+</html>

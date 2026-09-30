@@ -1,0 +1,9 @@
+{
+  "name": "tanal-sa-logement",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Plateforme de logement étudiant au Sénégal - annonces, validation, boost, visites",
+  "scripts": {
+    "start": "node server.js"
+  }
+}

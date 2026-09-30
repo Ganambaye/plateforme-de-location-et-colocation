@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Espace Admin - Tanal Sa Logement</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div id="nav"></div>
+  <div class="shell">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main class="main" id="main"></main>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/ui.js"></script>
+  <script>
+    (async function () {
+      const user = await guard('admin');
+      if (!user) return;
+      await renderNav();
+
+      const ITEMS = [
+        ['dashboard', 'chart', 'Dashboard'],
+        ['annonces', 'list', 'Annonces'],
+        ['utilisateurs', 'users', 'Utilisateurs'],
+        ['finances', 'money', 'Finances'],
+        ['visites', 'calendar', 'Visites'],
+        ['avis', 'star', 'Avis'],
+        ['notifications', 'bell', 'Notifications'],
+        ['messages', 'mail', 'Messages'],
+        ['quartiers', 'map', 'Quartiers'],
+        ['prix', 'tag', 'Prix']
+      ];
+
+      let vue = 'annonces';
+      let stats = null;
+      const main = document.getElementById('main');
+
+      async function renderSidebar() {
+        stats = await api('/api/admin/stats');
+        document.getElementById('sidebar').innerHTML = `
+          <div class="side-title"><span class="logo-mark">${icon('home', 20)}</span>
+            <span class="logo-txt"><b>TANAL</b><span>Sa Logement</span></span></div>
+          ${ITEMS.map(([id, ic, lbl]) => `<button class="side-item ${id === vue ? 'on' : ''}" data-v="${id}">
+            ${icon(ic, 17)} ${lbl}
+            ${id === 'annonces' && stats.enAttente ? `<span class="count">${stats.enAttente}</span>` : ''}
+          </button>`).join('')}`;
+        document.querySelectorAll('.side-item').forEach((b) => b.onclick = () => RENDERS[b.dataset.v]());
+      }
+
+      const RENDERS = {
+        async dashboard() {
+          vue = 'dashboard'; await renderSidebar();
+          main.innerHTML = `<div class="main-head"><h1>Dashboard</h1></div>
+            <div class="stats-row">
+              <div class="stat-card green"><div class="lbl">Annonces actives</div><div class="val">${stats.actives}</div></div>
+              <div class="stat-card amber"><div class="lbl">En attente</div><div class="val">${stats.enAttente}</div></div>
+              <div class="stat-card"><div class="lbl">Utilisateurs</div><div class="val">${stats.utilisateurs}</div></div>
+              <div class="stat-card"><div class="lbl">Visites</div><div class="val">${stats.visites}</div></div>
+              <div class="stat-card green"><div class="lbl">Revenus boost</div><div class="val" style="font-size:19px">${fmtFCFA(stats.revenus)}</div></div>
+            </div>
+            <div class="panel"><h2>${icon('bell', 16)} Activité récente</h2>
+              ${stats.evenements.map((e) => `<div class="list-row"><div class="grow"><b>${esc(e.texte)}</b><span>${timeAgo(e.date)}</span></div></div>`).join('')}
+            </div>`;
+        },
+
+        async annonces() {
+          vue = 'annonces'; await renderSidebar();
+          const queue = await api('/api/admin/annonces?statut=en_attente');
+          main.innerHTML = `<div class="main-head"><h1>Validation des annonces</h1>
+            <span class="badge badge-amber">${stats.enAttente} en attente</span></div>
+            ${queue.length ? queue.map((a) => `<div class="list-row">
+              <img class="thumb" src="/img/${a.photo}.png" alt="">
+              <div class="grow"><b>${esc(a.titre)}</b>
+                <span>${esc(a.quartier)} · ${fmtFCFA(a.prix)}/mois · Par : ${esc(a.bailleur.prenom)} ${esc(a.bailleur.nom)}</span></div>
+              <div class="acts">
+                <button class="btn btn-green btn-sm" data-ok="${a.id}">${icon('check', 14)} Approuver</button>
+                <button class="btn btn-red btn-sm" data-no="${a.id}">${icon('x', 14)} Rejeter</button>
+              </div></div>`).join('')
+              : '<div class="empty">Aucune annonce en attente de validation.</div>'}`;
+          const decide = async (id, statut) => {
+            await api(`/api/annonces/${id}/statut`, { method: 'PATCH', body: { statut } });
+            toast(statut === 'approuvee' ? 'Annonce approuvée' : 'Annonce rejetée');
+            RENDERS.annonces();
+          };
+          main.querySelectorAll('[data-ok]').forEach((b) => b.onclick = () => decide(b.dataset.ok, 'approuvee'));
+          main.querySelectorAll('[data-no]').forEach((b) => b.onclick = () => decide(b.dataset.no, 'rejectee'));
+        },
+
+        async utilisateurs() {
+          vue = 'utilisateurs'; await renderSidebar();
+          const list = await api('/api/admin/utilisateurs');
+          const ROLES = { etudiant: 'badge-blue', bailleur: 'badge-green-soft', admin: 'badge-red' };
+          main.innerHTML = `<div class="main-head"><h1>Utilisateurs</h1></div>
+            <div class="panel"><table class="tbl"><tr><th>Utilisateur</th><th>Email</th><th>Rôle</th><th>Inscrit le</th></tr>
+            ${list.map((u) => `<tr><td><b>${esc(u.prenom)} ${esc(u.nom)}</b></td><td>${esc(u.email)}</td>
+              <td><span class="badge ${ROLES[u.role]}">${u.role}</span></td><td>${fmtDate(u.creeLe)}</td></tr>`).join('')}
+            </table></div>`;
+        },
+
+        async finances() {
+          vue = 'finances'; await renderSidebar();
+          const list = await api('/api/admin/paiements');
+          main.innerHTML = `<div class="main-head"><h1>Finances</h1>
+            <span class="badge badge-green">Total : ${fmtFCFA(stats.revenus)}</span></div>
+            <div class="panel"><table class="tbl"><tr><th>Annonce</th><th>Bailleur</th><th>Formule</th><th>Jours</th><th>Mode</th><th>Montant</th><th>Date</th></tr>
+            ${list.map((p) => `<tr><td>${esc(p.annonce ? p.annonce.titre : '-')}</td><td>${esc(p.bailleur.prenom)} ${esc(p.bailleur.nom)}</td>
+              <td><span class="badge badge-blue">${p.formule}</span></td><td>${p.jours}</td><td>${esc(p.mode)}</td>
+              <td><b>${fmtFCFA(p.montant)}</b></td><td>${fmtDate(p.date)}</td></tr>`).join('')}
+            </table></div>`;
+        },
+
+        async visites() {
+          vue = 'visites'; await renderSidebar();
+          const list = await api('/api/visites');
+          main.innerHTML = `<div class="main-head"><h1>Visites</h1></div>
+            <div class="panel"><table class="tbl"><tr><th>Étudiant</th><th>Annonce</th><th>Date</th><th>Statut</th></tr>
+            ${list.map((v) => `<tr><td>${esc(v.etudiant.prenom)} ${esc(v.etudiant.nom)}</td><td>${esc(v.annonce.titre)}</td>
+              <td>${fmtDateVisite(v)}</td><td>${badgeStatut(v.statut === 'confirmee' ? 'approuvee' : v.statut === 'annulee' ? 'rejectee' : 'en_attente')}</td></tr>`).join('')}
+            </table></div>`;
+        },
+
+        async avis() {
+          vue = 'avis'; await renderSidebar();
+          const list = await api('/api/admin/avis');
+          main.innerHTML = `<div class="main-head"><h1>Avis</h1></div>
+            ${list.length ? list.map((v) => `<div class="panel"><div class="list-row" style="border:none;margin:0;padding:0">
+              <div class="grow"><b>${esc(v.etudiant.prenom)} ${esc(v.etudiant.nom)}
+                <span class="stars">${'★'.repeat(v.note)}${'☆'.repeat(5 - v.note)}</span></b>
+                <span>sur « ${esc(v.annonce ? v.annonce.titre : '-')} » · ${esc(v.texte)}</span></div>
+              <span style="color:var(--muted);font-size:12px">${timeAgo(v.date)}</span></div></div>`).join('')
+              : '<div class="empty">Aucun avis.</div>'}`;
+        },
+
+        async notifications() {
+          vue = 'notifications'; await renderSidebar();
+          const list = await api('/api/admin/evenements');
+          main.innerHTML = `<div class="main-head"><h1>Notifications</h1></div>
+            <div class="panel">${list.map((e) => `<div class="list-row">
+              <span style="color:var(--amber)">${icon('bell', 18)}</span>
+              <div class="grow"><b>${esc(e.texte)}</b><span>${timeAgo(e.date)}</span></div></div>`).join('')}</div>`;
+        },
+
+        async messages() {
+          vue = 'messages'; await renderSidebar();
+          const list = await api('/api/admin/messages');
+          main.innerHTML = `<div class="main-head"><h1>Messages (surveillance)</h1></div>
+            <div class="panel">${list.map((m) => `<div class="list-row">
+              <div class="grow"><b>${esc(m.from.prenom)} ${esc(m.from.nom)} → ${esc(m.to.prenom)} ${esc(m.to.nom)}</b>
+              <span>${esc(m.texte)}</span></div>
+              <span style="color:var(--muted);font-size:12px">${timeAgo(m.date)}</span></div>`).join('')}</div>`;
+        },
+
+        async quartiers() {
+          vue = 'quartiers'; await renderSidebar();
+          const list = await api('/api/admin/quartiers');
+          main.innerHTML = `<div class="main-head"><h1>Quartiers desservis</h1></div>
+            <div class="panel"><table class="tbl"><tr><th>Quartier</th><th>Annonces actives</th><th>Prix moyen</th></tr>
+            ${list.map((q) => `<tr><td><b>${esc(q.quartier)}</b></td><td>${q.annonces}</td>
+              <td>${q.prixMoyen ? fmtFCFA(q.prixMoyen) + ' /mois' : '-'}</td></tr>`).join('')}
+            </table></div>`;
+        },
+
+        async prix() {
+          vue = 'prix'; await renderSidebar();
+          const list = await api('/api/admin/prix');
+          main.innerHTML = `<div class="main-head"><h1>Prix par type de logement</h1></div>
+            <div class="panel"><table class="tbl"><tr><th>Type</th><th>Annonces</th><th>Min</th><th>Moyen</th><th>Max</th></tr>
+            ${list.map((t) => `<tr><td><b>${esc(t.type)}</b></td><td>${t.annonces}</td><td>${fmtFCFA(t.min)}</td>
+              <td><b>${fmtFCFA(t.moyen)}</b></td><td>${fmtFCFA(t.max)}</td></tr>`).join('')}
+            </table></div>`;
+        }
+      };
+
+      await RENDERS.annonces();
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Inscription - Tanal Sa Logement</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div id="nav"></div>
+
+  <div class="auth-wrap">
+    <div class="auth-card">
+      <div class="auth-head">
+        <span class="logo"><span class="logo-mark" id="logo-ic"></span>
+          <span class="logo-txt"><b>TANAL</b><span>Sa Logement</span></span></span>
+        <h1 id="titre">Inscription Étudiant</h1>
+      </div>
+
+      <div class="tabs">
+        <button type="button" data-role="etudiant" class="on">Étudiant</button>
+        <button type="button" data-role="bailleur">Bailleur</button>
+      </div>
+
+      <div class="info-banner" id="banner">
+        <b>Parcours étudiant</b>
+        <span>Créez votre compte pour accéder aux annonces vérifiées</span>
+      </div>
+
+      <div class="error-msg" id="err" hidden></div>
+      <form id="form" class="form-grid">
+        <div class="field"><label>Nom</label><input name="nom" required placeholder="Diallo"></div>
+        <div class="field"><label>Prénom</label><input name="prenom" required placeholder="Amadou"></div>
+        <div class="field full"><label>Email universitaire</label><input type="email" name="email" required placeholder="prenom.nom@edu.sn"></div>
+        <div class="field"><label>Téléphone</label><input name="telephone" placeholder="+221 77 000 00 00"></div>
+        <div class="field"><label>WhatsApp</label><input name="whatsapp" placeholder="+221 77 000 00 00"></div>
+        <div class="field full"><label>Mot de passe</label><input type="password" name="password" required minlength="6" placeholder="6 caractères minimum"></div>
+        <div class="full"><button class="btn btn-primary btn-block" type="submit">Créer mon compte</button></div>
+      </form>
+      <p class="form-foot">Déjà inscrit ? <a href="/connexion.html">Se connecter</a></p>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/ui.js"></script>
+  <script>
+    (async function () {
+      await renderNav();
+      document.getElementById('logo-ic').innerHTML = icon('home', 20);
+      let role = 'etudiant';
+
+      const BANNERS = {
+        etudiant: ['Parcours étudiant', 'Créez votre compte pour accéder aux annonces vérifiées'],
+        bailleur: ['Parcours bailleur', 'Publiez vos annonces et touchez des milliers d\'étudiants']
+      };
+
+      document.querySelectorAll('.tabs button').forEach((b) => b.onclick = () => {
+        role = b.dataset.role;
+        document.querySelectorAll('.tabs button').forEach((x) => x.classList.toggle('on', x === b));
+        document.getElementById('titre').textContent = role === 'etudiant' ? 'Inscription Étudiant' : 'Inscription Bailleur';
+        const [t, s] = BANNERS[role];
+        document.getElementById('banner').innerHTML = `<b>${t}</b><span>${s}</span>`;
+      });
+
+      document.getElementById('form').onsubmit = async (e) => {
+        e.preventDefault();
+        const err = document.getElementById('err');
+        err.hidden = true;
+        const f = Object.fromEntries(new FormData(e.target));
+        try {
+          const { token, user } = await api('/api/inscription', { method: 'POST', body: { ...f, role } });
+          setToken(token);
+          location.href = homeFor(user.role);
+        } catch (e2) {
+          err.textContent = e2.message;
+          err.hidden = false;
+        }
+      };
+    })();
+  </script>
+</body>
+</html>

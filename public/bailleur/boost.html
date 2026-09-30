@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Booster mon annonce - Tanal Sa Logement</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div id="nav"></div>
+  <div class="container" style="max-width:860px" id="content"></div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/ui.js"></script>
+  <script>
+    (async function () {
+      const user = await guard('bailleur');
+      if (!user) return;
+      await renderNav();
+      const out = document.getElementById('content');
+
+      let a;
+      try {
+        const list = await api('/api/annonces/mes');
+        a = list.find((x) => String(x.id) === qs('annonce'));
+      } catch {}
+      if (!a) { out.innerHTML = '<div class="empty" style="margin:40px 0">Annonce introuvable.</div>'; return; }
+
+      const PLANS = [
+        ['premium', 'Premium', 5000, ['Tête des résultats de recherche', 'Badge "Boosté" visible', 'Priorité dans chaque quartier']],
+        ['standard', 'Standard', 2500, ['Bonne visibilité en accueil', 'Badge "Boosté" visible']],
+        ['basic', 'Basic', 1000, ['Mise en avant légère', 'Idéal pour tester']]
+      ];
+      let formule = 'premium';
+      let jours = 7;
+      let mode = 'Wave';
+
+      function render() {
+        const total = PLANS.find((p) => p[0] === formule)[2] * jours;
+        out.innerHTML = `
+          <div class="main-head" style="margin:26px 0"><h1>Booster mon annonce</h1>
+            <a class="btn btn-ghost" href="/bailleur/annonces.html">← Mes annonces</a></div>
+          <div class="panel">
+            <div class="boost-preview">
+              ${photo(a.photo)}
+              <div><b style="font-size:17px">${esc(a.titre)}</b>
+                <p class="an-loc" style="margin:6px 0">${icon('map', 14)} ${esc(a.quartier)} · ${esc(a.type)}</p>
+                <span class="an-price">${fmtFCFA(a.prix)} <small>/mois</small></span></div>
+            </div>
+          </div>
+          <div class="panel">
+            <h2>Choisissez votre formule</h2>
+            <div class="plans">${PLANS.map(([id, nom, prix, perks]) => `
+              <button type="button" class="plan ${id === formule ? 'on' : ''}" data-p="${id}">
+                <b>${nom}</b>
+                <span class="prix">${fmtFCFA(prix)}<small>/ jour</small></span>
+                <ul>${perks.map((p) => `<li>• ${p}</li>`).join('')}</ul>
+                <span class="btn ${id === formule ? 'btn-primary' : 'btn-ghost'} btn-sm">Choisir</span>
+              </button>`).join('')}</div>
+            <h2>Durée du boost</h2>
+            <div class="pay-row">${[1, 3, 7, 15, 30].map((j) => `
+              <button type="button" class="pay-opt ${j === jours ? 'on' : ''}" data-j="${j}">${j} jour${j > 1 ? 's' : ''}</button>`).join('')}</div>
+            <h2>Mode de paiement</h2>
+            <div class="pay-row">${['Wave', 'Orange Money', 'Carte bancaire'].map((m) => `
+              <button type="button" class="pay-opt ${m === mode ? 'on' : ''}" data-m="${m}">${m}</button>`).join('')}</div>
+            <div class="total-line"><span>Total à payer</span><span>${fmtFCFA(total)}</span></div>
+            <button class="btn btn-primary btn-block" id="pay">${icon('check', 16)} Confirmer et payer</button>
+          </div>`;
+
+        out.querySelectorAll('[data-p]').forEach((b) => b.onclick = () => { formule = b.dataset.p; render(); });
+        out.querySelectorAll('[data-j]').forEach((b) => b.onclick = () => { jours = Number(b.dataset.j); render(); });
+        out.querySelectorAll('[data-m]').forEach((b) => b.onclick = () => { mode = b.dataset.m; render(); });
+        document.getElementById('pay').onclick = async () => {
+          const r = await api(`/api/annonces/${a.id}/boost`, { method: 'POST', body: { formule, jours, mode } });
+          out.innerHTML = `<div class="panel" style="margin:60px auto;max-width:520px;text-align:center">
+            <div style="color:var(--green);margin-bottom:12px">${icon('check', 44)}</div>
+            <h1 style="margin-bottom:8px">Paiement confirmé</h1>
+            <p style="color:var(--muted);margin-bottom:6px">Formule ${formule} · ${jours} jours · ${fmtFCFA(r.paiement.montant)} via ${esc(mode)}</p>
+            <p style="color:var(--muted);margin-bottom:20px">Votre annonce est maintenant en tête des résultats.</p>
+            <a class="btn btn-primary" href="/bailleur/annonces.html">Retour à mes annonces</a>
+          </div>`;
+        };
+      }
+      render();
+    })();
+  </script>
+</body>
+</html>

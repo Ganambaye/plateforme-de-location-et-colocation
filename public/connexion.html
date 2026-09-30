@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Connexion - Tanal Sa Logement</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div id="nav"></div>
+
+  <div class="auth-wrap">
+    <div class="auth-card">
+      <div class="auth-head">
+        <span class="logo"><span class="logo-mark" id="logo-ic"></span>
+          <span class="logo-txt"><b>TANAL</b><span>Sa Logement</span></span></span>
+        <h1>Connexion</h1>
+      </div>
+      <div class="error-msg" id="err" hidden></div>
+      <form id="form" class="form-grid">
+        <div class="field full"><label>Email</label><input type="email" name="email" required placeholder="vous@exemple.sn"></div>
+        <div class="field full"><label>Mot de passe</label><input type="password" name="password" required placeholder="••••••••"></div>
+        <div class="full"><button class="btn btn-primary btn-block" type="submit">Se connecter</button></div>
+      </form>
+      <div class="demo-row">
+        <button class="btn btn-ghost btn-sm" data-demo="etudiant@tanal.sn|etudiant123">Compte étudiant</button>
+        <button class="btn btn-ghost btn-sm" data-demo="bailleur@tanal.sn|bailleur123">Compte bailleur</button>
+        <button class="btn btn-ghost btn-sm" data-demo="admin@tanal.sn|admin123">Compte admin</button>
+      </div>
+      <p class="form-foot">Pas encore de compte ? <a href="/inscription.html">Inscription gratuite</a></p>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/ui.js"></script>
+  <script>
+    (async function () {
+      await renderNav('login');
+      document.getElementById('logo-ic').innerHTML = icon('home', 20);
+
+      async function login(email, password) {
+        const err = document.getElementById('err');
+        err.hidden = true;
+        try {
+          const { token, user } = await api('/api/connexion', { method: 'POST', body: { email, password } });
+          setToken(token);
+          location.href = homeFor(user.role);
+        } catch (e) {
+          err.textContent = e.message;
+          err.hidden = false;
+        }
+      }
+
+      document.getElementById('form').onsubmit = (e) => {
+        e.preventDefault();
+        const f = new FormData(e.target);
+        login(f.get('email'), f.get('password'));
+      };
+      document.querySelectorAll('[data-demo]').forEach((b) => b.onclick = () => {
+        const [email, password] = b.dataset.demo.split('|');
+        login(email, password);
+      });
+    })();
+  </script>
+</body>
+</html>

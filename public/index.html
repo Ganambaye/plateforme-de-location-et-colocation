@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tanal Sa Logement - Trouvez votre logement idéal</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div id="nav"></div>
+
+  <section class="hero">
+    <span class="hero-pill">Plateforme n°1 du logement étudiant au Sénégal</span>
+    <h1>Trouvez votre <em>logement idéal</em></h1>
+    <p>Recherchez, visitez et emménagez en toute simplicité</p>
+    <div class="hero-cta">
+      <a class="btn btn-yellow" href="#resultats">Voir annonces</a>
+      <a class="btn btn-white" href="/inscription.html">Inscription gratuite</a>
+    </div>
+  </section>
+
+  <div class="container">
+    <form class="search-card" id="search-form">
+      <select id="f-type"><option value="">Type</option></select>
+      <select id="f-quartier"><option value="">Quartier</option></select>
+      <select id="f-prix"><option value="">Prix max</option></select>
+      <button class="btn btn-primary" type="submit">Rechercher</button>
+    </form>
+  </div>
+
+  <section class="section container" id="resultats">
+    <div class="section-head">
+      <h2 id="grid-title">Annonces récentes</h2>
+      <a href="#" id="voir-tout">Voir tout →</a>
+    </div>
+    <div class="grid-cards" id="grid"></div>
+  </section>
+
+  <footer class="footer">
+    <div class="container">
+      <span class="logo"><span class="logo-mark" style="background:#1e293b;color:#fff">⌂</span>
+        <span class="logo-txt"><b>TANAL</b><span style="color:#64748b">Sa Logement</span></span></span>
+      <span>© 2026 Tanal Sa Logement - Dakar, Sénégal</span>
+    </div>
+  </footer>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/ui.js"></script>
+  <script src="/js/home.js"></script>
+</body>
+</html>
