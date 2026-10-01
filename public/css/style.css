@@ -284,3 +284,84 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
   .form-grid, .plans, .detail, .msg-wrap, .boost-preview { grid-template-columns: 1fr; }
   .hero h1 { font-size: 30px; }
 }
+
+/* ---------- PWA : bannière d'installation ---------- */
+.pwa-banner {
+  position: fixed; left: 12px; right: 12px; bottom: 64px; z-index: 200;
+  background: #0f172a; color: #fff; border-radius: 14px;
+  display: flex; align-items: center; gap: 10px; padding: 12px 14px;
+  font-size: 13.5px; box-shadow: 0 8px 30px rgba(15, 23, 42, .35);
+  animation: pop .25s ease;
+}
+.pwa-banner span { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; }
+.pwa-banner svg { flex-shrink: 0; color: var(--yellow); }
+.pwa-banner #pwa-install {
+  flex-shrink: 0; background: var(--yellow); color: #1f2937;
+  border: none; border-radius: 8px; padding: 9px 14px; font-weight: 700; font-size: 13px;
+}
+.pwa-banner .pwa-close {
+  flex-shrink: 0; background: transparent; color: #cbd5e1;
+  border: none; font-size: 20px; line-height: 1; padding: 0 4px;
+}
+
+/* ---------- Mobile (< 600px) ---------- */
+@media (max-width: 600px) {
+  .container { padding: 0 14px; }
+  .nav-in { gap: 8px; height: 58px; }
+  .logo { gap: 8px; flex-shrink: 0; }
+  .logo-mark { width: 32px; height: 32px; }
+  .logo-txt b { font-size: 15px; }
+  .logo-txt span { font-size: 9px; letter-spacing: 1.5px; }
+  .nav-links { gap: 2px; overflow-x: auto; scrollbar-width: none; }
+  .nav-links::-webkit-scrollbar { display: none; }
+  .nav-links a, .nav-links button.link { padding: 8px 8px; font-size: 13px; white-space: nowrap; }
+  .nav-links .btn { padding: 8px 12px; font-size: 13px; white-space: nowrap; }
+  .nav-user { gap: 4px; font-size: 13px; white-space: nowrap; }
+  .nav-user .avatar { width: 27px; height: 27px; font-size: 11px; }
+  .hero { padding: 54px 16px 92px; }
+  .hero h1 { font-size: 26px; }
+  .hero p { font-size: 15px; margin-bottom: 20px; }
+  .hero-cta { flex-direction: column; }
+  .hero-cta .btn { width: 100%; }
+  .search-card { grid-template-columns: 1fr; margin-top: -46px; padding: 12px; }
+  .section { padding: 26px 0; }
+  .section-head h2 { font-size: 18px; }
+  .grid-cards { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+  .an-body { padding: 10px; }
+  .an-body h3 { font-size: 13.5px; }
+  .an-actions { padding: 0 10px 10px; flex-wrap: wrap; }
+  .an-actions .btn { flex: 1; justify-content: center; }
+  .auth-wrap { margin: 18px auto; padding: 0 10px; }
+  .auth-card { padding: 20px 16px; }
+  .form-grid { gap: 10px; }
+  .info-banner { font-size: 13px; }
+  .demo-row { gap: 6px; }
+  .main { padding: 16px 12px; }
+  .main-head { gap: 8px; }
+  .main-head h1 { font-size: 19px; }
+  .main-head .btn { font-size: 13px; padding: 9px 12px; }
+  .stats-row { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .stat-card { padding: 12px 8px; }
+  .stat-card .val { font-size: 22px; }
+  .stat-card .lbl { font-size: 12px; }
+  .panel { padding: 14px; margin-bottom: 16px; }
+  .list-row { flex-wrap: wrap; gap: 10px; padding: 10px; }
+  .list-row .thumb { width: 100%; height: 130px; }
+  .list-row .acts { width: 100%; justify-content: flex-start; }
+  table.tbl { display: block; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; }
+  .detail { margin: 16px 0; gap: 14px; }
+  .detail .ph { aspect-ratio: 4/3; }
+  .detail-info h1 { font-size: 20px; }
+  .price-big { font-size: 22px; }
+  .msg-wrap { min-height: 380px; }
+  .msg-body { max-height: 300px; }
+  .bubble { max-width: 88%; }
+  .msg-list { max-height: 380px; overflow-y: auto; }
+  .plans { gap: 10px; }
+  .pay-row { gap: 8px; }
+  .pay-opt { padding: 8px 12px; font-size: 13.5px; }
+  .total-line { font-size: 15px; }
+  .footer { padding: 26px 0; margin-top: 24px; }
+  .footer .container { flex-direction: column; text-align: center; gap: 12px; }
+  .btn { padding: 10px 14px; }
+}

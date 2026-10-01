@@ -4,6 +4,10 @@
   "private": true,
   "description": "Plateforme de logement étudiant au Sénégal - annonces, validation, boost, visites",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "test:vercel": "node dev/test-vercel.mjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.57.4"
   }
 }

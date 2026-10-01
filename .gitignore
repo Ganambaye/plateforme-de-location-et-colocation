@@ -14,5 +14,15 @@ server.log
 # Variables d'environnement
 .env
 
+# Jeton d'accès Supabase (déploiement)
+supabase.token
+supabase-info.local
+
 # Descripteur de déploiement Qoder
 *.qoder.site
+
+# Vercel (déploiement local via CLI)
+.vercel/
+
+.vercel
+.env*
